@@ -1,0 +1,6 @@
+0. Create a folder to store these versions(I need a way to store versions based on maybe datetime or some other method )
+1. Retrieve the event context and event kind from the directory watcher
+2. Anytime the event context is modify create a new file with a new timestamp
+3. If the file is created then create a new file with timestamp 0 123
+
+Keep track of the old file and compare the content of the old file to the modified file. If the file content is still the same not modified else modified
