@@ -6,8 +6,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.WatchEvent;
 import java.util.HashMap;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class DirHelper {
 
@@ -63,4 +66,13 @@ public class DirHelper {
       return null;
     }
   }
-}
+
+  public static List<Path> getDirectories(Stream<Path> paths, Path path){
+List<Path> directories = paths.filter(Files::isDirectory)
+                             .distinct()
+                             .sorted()
+                             .collect(Collectors.toList());
+     return directories;
+   }
+  }
+

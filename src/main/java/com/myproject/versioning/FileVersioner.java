@@ -1,44 +1,70 @@
 package com.myproject.versioning;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
-import com.myproject.helper.DateHelper;
 import com.myproject.helper.DirHelper;
-import com.myproject.watcher.DirectoryWatcher;
+import com.myproject.helper.FileHelper;
 
-public class FileVersioner {
-  private final Path DIRECTORY_PATH;
-  private DirectoryWatcher directoryWatcher;
+/**
+ * The FileVersioner class is responsible for managing file versions within a specified directory.
+ * It initializes by mapping the initial content of files in the directory and creates a folder
+ * structure for versioning based on the current date. The class also provides functionality to
+ * retrieve the mapping of files to their content.
+ *
+ * <p>Key functionalities include:
+ * <ul>
+ *   <li>Creating version folders based on the current date</li>
+ *   <li>Mapping files to their content at the time of initialization</li>
+ *   <li>Providing access to the file-to-content mapping</li>
+ * </ul>
+ *
+ * <p>Usage example:
+ * <pre>
+ * {@code
+ * Path directoryPath = Paths.get("path/to/directory");
+ * FileVersioner fileVersioner = new FileVersioner(directoryPath);
+ * String versionFolder = fileVersioner.versionFolders();
+ * HashMap<Path, byte[]> fileContentMap = FileVersioner.getMapFileToContent();
+ * }
+ * </pre>
+ */
+public final class FileVersioner {
 
-  public FileVersioner(Path DIRECTORY_PATH) throws IOException{
-    this.DIRECTORY_PATH = DIRECTORY_PATH;
-    //initailizes a new directory watcher for the versioner
-    this.directoryWatcher = new DirectoryWatcher(DIRECTORY_PATH);
-    DirHelper.createFolder(DIRECTORY_PATH.getFileName().toString() + "_versioned-folders");
+  private final List<Path> files;
+  private final static ConcurrentHashMap<Path, byte[]> mapFileToContent = new ConcurrentHashMap<>();
+
+  public FileVersioner(Path directoryPath) throws IOException {
+    this.files = FileHelper.getFiles(directoryPath);
+    mapFileToContent();
+    // Initializes a new directory watcher for the version
+    DirHelper.createFolder(directoryPath.getParent().resolve(directoryPath.getFileName().toString() + "\\versions").toString());
   }
 
-  //Create folders corresponding to the current date
-  public void createVersionedFolders(){
-    String formattedDate = DateHelper.formatDate();
-    //Build the folder name
-    StringBuilder buildFolderName = new StringBuilder(DIRECTORY_PATH.toString());
-    buildFolderName.append("\\")
-    .append(DIRECTORY_PATH.getFileName())
-    .append("_versioned-folders")
-    .append("\\Folder_")
-    .append(formattedDate);
-    DirHelper.createFolder(buildFolderName.toString());
- }
 
+  /**
+   * Get the files and the content of the initial files in the directory path
+   * */
+  public void mapFileToContent() {
+    for (Path filePath : files) {
+      Path absoluteFile = filePath.toAbsolutePath();
+      byte[] fileBytes = FileHelper.readFileContent(filePath);
+      //Checks if the file has content that can be read
+        assert fileBytes != null : "File bytes should not be null";
+        mapFileToContent.put(absoluteFile, fileBytes);
+    }
+  }
 
+  /**
+   * Retrieves the mapping of file paths to their corresponding content.
+   * @return a ConcurrentHashMap containing the mapping of file paths to file content.
+   */
+  public static ConcurrentHashMap<Path, byte[]> getMapFileToContent() {
+    return mapFileToContent;
+  }
 
-
-
-
-
-
-
-
-
-  
+  public List<Path> getFiles(){
+    return files;
+  }
 }
