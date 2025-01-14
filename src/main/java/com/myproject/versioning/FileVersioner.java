@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.myproject.helper.DirHelper;
 import com.myproject.helper.FileHelper;
@@ -32,14 +33,14 @@ import com.myproject.helper.FileHelper;
  */
 public final class FileVersioner {
 
-  private final List<Path> files;
-  private final static ConcurrentHashMap<Path, byte[]> mapFileToContent = new ConcurrentHashMap<>();
+  private final CopyOnWriteArrayList<Path> files;
+  private final ConcurrentHashMap<Path, byte[]> mapFileToContent = new ConcurrentHashMap<>();
 
-  public FileVersioner(Path directoryPath) throws IOException {
+  public FileVersioner(Path directoryPath) {
     this.files = FileHelper.getFiles(directoryPath);
     mapFileToContent();
     // Initializes a new directory watcher for the version
-    DirHelper.createFolder(directoryPath.getParent().resolve(directoryPath.getFileName().toString() + "\\versions").toString());
+    DirHelper.createFolder(directoryPath.getParent().resolveSibling(directoryPath.getFileName()).resolve("versions").toString());
   }
 
 
@@ -51,7 +52,9 @@ public final class FileVersioner {
       Path absoluteFile = filePath.toAbsolutePath();
       byte[] fileBytes = FileHelper.readFileContent(filePath);
       //Checks if the file has content that can be read
-        assert fileBytes != null : "File bytes should not be null";
+      if (fileBytes == null) {
+        throw new IllegalStateException("Failed to read content from file: " + filePath);
+      }
         mapFileToContent.put(absoluteFile, fileBytes);
     }
   }
@@ -60,7 +63,7 @@ public final class FileVersioner {
    * Retrieves the mapping of file paths to their corresponding content.
    * @return a ConcurrentHashMap containing the mapping of file paths to file content.
    */
-  public static ConcurrentHashMap<Path, byte[]> getMapFileToContent() {
+  public ConcurrentHashMap<Path, byte[]> getMapFileToContent() {
     return mapFileToContent;
   }
 
