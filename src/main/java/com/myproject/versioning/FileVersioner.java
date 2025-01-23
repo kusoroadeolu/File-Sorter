@@ -1,5 +1,4 @@
 package com.myproject.versioning;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,21 +32,20 @@ import com.myproject.helper.FileHelper;
  */
 public final class FileVersioner {
 
-  private final CopyOnWriteArrayList<Path> files;
+  private final CopyOnWriteArrayList<Path> files = new CopyOnWriteArrayList<>();
   private final ConcurrentHashMap<Path, byte[]> mapFileToContent = new ConcurrentHashMap<>();
 
   public FileVersioner(Path directoryPath) {
-    this.files = FileHelper.getFiles(directoryPath);
-    mapFileToContent();
+    mapFileToContent(files);
     // Initializes a new directory watcher for the version
-    DirHelper.createFolder(directoryPath.getParent().resolveSibling(directoryPath.getFileName()).resolve("versions").toString());
+    DirHelper.createFolder(directoryPath.getParent().resolve(directoryPath.getFileName()).resolve("versions").toString());
   }
 
 
   /**
    * Get the files and the content of the initial files in the directory path
    * */
-  public void mapFileToContent() {
+  public void mapFileToContent(CopyOnWriteArrayList<Path> files) {
     for (Path filePath : files) {
       Path absoluteFile = filePath.toAbsolutePath();
       byte[] fileBytes = FileHelper.readFileContent(filePath);

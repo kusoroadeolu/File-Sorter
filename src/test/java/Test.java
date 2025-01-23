@@ -1,18 +1,45 @@
+import java.io.IOException;
+import java.nio.file.*;
+import java.sql.SQLOutput;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static java.lang.Thread.currentThread;
+import static java.lang.Thread.sleep;
 
 public class Test {
   public static void main(String[] args) {
-   String fileName = "C:\\Users\\eastw\\Git Projects\\Pers.onal\\filemanager\\1.2.3.xml";
-   String[] splitName = fileName.split("\\.");
+      try(WatchService watchService = FileSystems.getDefault().newWatchService()){
+          Path path = Paths.get("");
+          path.register(watchService, StandardWatchEventKinds.ENTRY_DELETE,
+                  StandardWatchEventKinds.ENTRY_CREATE,
+                  StandardWatchEventKinds.ENTRY_MODIFY);
 
-   String extension = splitName[splitName.length - 1];
-   System.out.println(extension);
-   String withoutExtension = fileName.replace("." + extension, "");
-   System.out.println(withoutExtension);
+          while(true){
+            WatchKey key = watchService.take();
+            for(WatchEvent<?> eventKind:  key.pollEvents()){
+              WatchEvent.Kind<?> kind = eventKind.kind();
+              System.out.println(eventKind.context() + ": " + kind);
+            }
+          }
 
-   String buildName = withoutExtension + "  101." + extension;
-   System.out.println(buildName);
+
+
+      } catch (IOException e) {
+          throw new RuntimeException(e);
+      } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+      }
+  }
+}
 
 
 
-}}
+
+

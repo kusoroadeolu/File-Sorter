@@ -14,6 +14,12 @@ public class StringHelper {
     return date.format(formatter);
   }
 
+  public static String formatTime(){
+    LocalDateTime time = LocalDateTime.now();
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH-mm-ss");
+    return time.format(formatter);
+  }
+
   /**
    * Extracts the extension from a file's name
    * @param fileName the name of the file

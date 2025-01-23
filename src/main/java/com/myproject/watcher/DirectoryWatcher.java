@@ -9,19 +9,20 @@ import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.myproject.helper.DirHelper;
+import com.myproject.helper.StringHelper;
 
 public class DirectoryWatcher {
     private final Path DIRECTORY_PATH;
@@ -33,10 +34,12 @@ public class DirectoryWatcher {
     private final Set<Path> registeredDirectories = Collections.synchronizedSet(new HashSet<>());
 
     public DirectoryWatcher(Path DIRECTORY_PATH) throws IOException {
+        System.out.println("Directory Watcher init");
         this.watchService = FileSystems.getDefault().newWatchService();
         this.eventHandler = new EventHandler(DIRECTORY_PATH, watchService);
         this.DIRECTORY_PATH = DIRECTORY_PATH;
         watchAllDirectories();
+        analyzeEvents();
     }
 
     /**
@@ -57,14 +60,12 @@ public class DirectoryWatcher {
                                     StandardWatchEventKinds.ENTRY_MODIFY);
                         }
                     }
-                    analyzeEvents();
                 }else{
                     throw new RuntimeException("Entered Path: " + DIRECTORY_PATH + " is not a directory");
 
                 }
             } catch (IOException e) {
                 Logger.getLogger(DirectoryWatcher.class.getName()).log(Level.SEVERE, "Failed to register directory!", e);
-                return;
             }
         });
     }
@@ -82,22 +83,22 @@ public class DirectoryWatcher {
                         WatchEvent.Kind<?> eventKind = event.kind();
                         Path affectedPath = (Path) event.context();
                         Path absolutePath = DIRECTORY_PATH.resolve(affectedPath);
-                        long timestamp = System.currentTimeMillis();
+                        long currentTimeMillis = System.currentTimeMillis();
+                        String timestamp = StringHelper.formatTime();
 
-                        DirHelper.handleDirectoryDuplication(absolutePath, eventKind, timestamp, mapPathToCreationTime);
+                        DirHelper.handleDirectoryDuplication(absolutePath, eventKind, currentTimeMillis, mapPathToCreationTime);
 
-                        if (eventKind.equals(StandardWatchEventKinds.ENTRY_CREATE)) {
-                            eventHandler.handleFileCreation(absolutePath, timestamp);
-                        } else if (eventKind.equals(StandardWatchEventKinds.ENTRY_MODIFY)) {
-                            eventHandler.handleFileModification(absolutePath, timestamp);
-                        } else if (eventKind.equals(StandardWatchEventKinds.ENTRY_DELETE)) {
-                            eventHandler.handleFileDeletion(absolutePath, timestamp);
+                        if(DirHelper.isADir(absolutePath) && Files.exists(absolutePath)){
+                            handleDirectoryCreation(absolutePath);
+                        }else{
+                       eventHandler.consumeEvents(absolutePath, eventKind);
+                       eventHandler.handleEvents(timestamp);
                         }
+
                     }
 
                     if (!key.reset()) {
                         Logger.getLogger(DirectoryWatcher.class.getName()).log(Level.WARNING, "WatchKey is no longer valid.");
-                        break;
                     }
                 }
             } catch (InterruptedException e) {
@@ -128,6 +129,33 @@ public class DirectoryWatcher {
             Logger.getLogger(DirectoryWatcher.class.getName()).log(Level.SEVERE, "Security exception!", e);
             closeWatchService();
         }
+    }
+
+    /**
+     * Handles the sequences of events for when a directory is created
+     * @param folderPath the folder that is created
+     * */
+    private void handleDirectoryCreation(Path folderPath){
+            try(Stream<Path> paths = Files.walk(folderPath)){
+                CopyOnWriteArrayList<Path> newDirectories = paths.filter(Files::isDirectory).sorted().collect(Collectors.toCollection(CopyOnWriteArrayList::new));
+                newDirectories.forEach(this::registerDirectory);
+                ConcurrentSkipListSet <Path> newFiles;
+                try{
+                    for(Path directory: newDirectories){
+                    newFiles = Files.walk(directory).filter(Files::isRegularFile).filter(Files::isReadable).filter(Files::isWritable).collect(Collectors.toCollection(ConcurrentSkipListSet::new));
+                    for(Path file: newFiles){
+                        if(Files.exists(file.toAbsolutePath()) && !newFiles.contains(folderPath)){
+                            eventHandler.handleFileCreation(file, StringHelper.formatTime());
+                        }
+                    }
+                }
+                }catch (IOException e){
+                    Logger.getLogger(DirectoryWatcher.class.getName()).log(Level.SEVERE, "Failed to create versioned file for: " + folderPath, e);
+                }
+
+            }catch (IOException e){
+                Logger.getLogger(DirectoryWatcher.class.getName()).log(Level.SEVERE, "Failed to get directories!", e);
+            }
     }
 
     private void closeWatchService() {

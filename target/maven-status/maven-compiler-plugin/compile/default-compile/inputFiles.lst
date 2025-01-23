@@ -1,4 +1,9 @@
-C:\Users\eastw\Desktop\Java Projects\Mini Projects\filemanager\src\main\java\com\myproject\Main.java
-C:\Users\eastw\Desktop\Java Projects\Mini Projects\filemanager\src\main\java\com\myproject\versionfolderimpl\CreateFile.java
-C:\Users\eastw\Desktop\Java Projects\Mini Projects\filemanager\src\main\java\com\myproject\versionfolderimpl\helper\Helper.java
-C:\Users\eastw\Desktop\Java Projects\Mini Projects\filemanager\src\main\java\com\myproject\versionfolderimpl\InitDir.java
+C:\Users\eastw\Git Projects\Personal\filemanager\src\main\java\com\myproject\helper\DirHelper.java
+C:\Users\eastw\Git Projects\Personal\filemanager\src\main\java\com\myproject\helper\FileHelper.java
+C:\Users\eastw\Git Projects\Personal\filemanager\src\main\java\com\myproject\helper\StringHelper.java
+C:\Users\eastw\Git Projects\Personal\filemanager\src\main\java\com\myproject\Main.java
+C:\Users\eastw\Git Projects\Personal\filemanager\src\main\java\com\myproject\versioning\FileVersioner.java
+C:\Users\eastw\Git Projects\Personal\filemanager\src\main\java\com\myproject\watcher\DirectoryWatcher.java
+C:\Users\eastw\Git Projects\Personal\filemanager\src\main\java\com\myproject\watcher\EventHandler.java
+C:\Users\eastw\Git Projects\Personal\filemanager\src\main\java\com\myproject\watcher\FileEvent.java
+C:\Users\eastw\Git Projects\Personal\filemanager\src\main\java\com\myproject\watcher\FileEventComparator.java

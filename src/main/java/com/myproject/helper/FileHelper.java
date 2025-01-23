@@ -5,13 +5,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.myproject.versioning.FileVersioner;
+import com.myproject.watcher.EventHandler;
 
 public class FileHelper {
     /**
@@ -19,7 +20,7 @@ public class FileHelper {
      * @param path The directory path
      * @return a thread-safe list of the files gotten from the directory
      * */
-   public static CopyOnWriteArrayList getFiles(Path path){
+   public static ConcurrentSkipListSet<Path> getFiles(Path path){
    try(Stream<Path> paths = Files.walk(path)){
      List<Path> files = paths.filter(Files::isReadable)
                              .filter(Files::isWritable)
@@ -29,7 +30,7 @@ public class FileHelper {
                              .collect(Collectors.toList());
      Path exemptedFile = path.resolve("versions");
 
-     CopyOnWriteArrayList<Path> concurrentList = new CopyOnWriteArrayList<>(files);
+     ConcurrentSkipListSet<Path> concurrentList = new ConcurrentSkipListSet<>(files);
      concurrentList.stream().filter(Objects::nonNull).filter(file -> file.startsWith(exemptedFile)).forEach(files::remove);
      return concurrentList;
 
@@ -46,13 +47,15 @@ public class FileHelper {
  * */
 
   public static byte[] readFileContent(Path filePath){
+      if(Files.exists(filePath)){
     try {
-        byte[] b = Files.readAllBytes(filePath);
-        return b;
+        return Files.readAllBytes(filePath);
     } catch (IOException e) {
-      Logger.getLogger(FileVersioner.class.getName()).log(Level.SEVERE, "Could read file: {0}", filePath);
+      Logger.getLogger(FileVersioner.class.getName()).log(Level.SEVERE, "Could not read file: {0}", filePath);
       return null;
     }
+      }
+      return null;
   }
 
 /**
@@ -64,11 +67,11 @@ public class FileHelper {
  * @return The versioned filename
  * */
 
-  public static String buildVersionedFileName(Path directoryPath, String fileName, String eventType, long timestamp){
+  public static String buildVersionedFileName(Path directoryPath, String fileName, String eventType, String timestamp){
     String formattedDate = StringHelper.formatDate();
 
     String fileExtension = StringHelper.extractExtension(fileName);
-    String fileNameWithoutExtension = fileName.replace("." + fileExtension, "");
+    String fileNameWithoutExtension = StringHelper.removeExtension(fileName);
 
     // Build the folder name
     Path versionedPath = directoryPath.getParent()
